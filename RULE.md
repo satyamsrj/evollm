@@ -28,8 +28,9 @@ This document defines the non-negotiable operational, architectural, and version
 
 ## 3. Atomic GitHub Push & Individual File Commit Protocol
 
-- **Push Files Individually**: Do not bundle disparate, unrelated changes across multiple files into bulk commits.
-- **No Blanket `git add .`**: Never run indiscriminate bulk staging (`git add .` or `git add -A`). Stage and commit files individually with granular scope:
+- **Push Only on Explicit User Command**: Do NOT automatically commit or push to GitHub after creating or modifying files. Commits and pushes are executed only when the user explicitly instructs it (e.g., "push to GitHub", "commit and push"). Writing a file to disk does not trigger a push.
+- **Push Files Individually**: When instructed to push, do not bundle disparate changes across multiple files into a single bulk commit. Stage, commit, and push each file separately in sequence.
+- **No Blanket `git add .`**: Never run indiscriminate bulk staging (`git add .` or `git add -A`). Stage files individually:
   ```bash
   git add <specific-file>
   git commit -m "<type>(<scope>): <precise description>"
