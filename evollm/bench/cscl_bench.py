@@ -1,25 +1,28 @@
-"""
-CSCL-Bench: Continual Conversation-Simulation Benchmark.
-Evaluates weight-only parameter evolution across 4 core tracks:
-1. Knowledge Injection Accuracy (KAA)
-2. Incremental Correction & Multi-Hop Overwrites
-3. Base Invariant Retention (Forgetting Metric)
-4. Adversarial Falsehood Resistance (FAR)
-"""
-import torch
-from dataclasses import dataclass
-from typing import List, Dict, Any, Callable
+import json
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
 
 
 @dataclass
 class BenchmarkItem:
-    track_id: str
-    query: str
-    target_answer: str
-    flawed_answer: str = ""
-    is_correction: bool = True
-    test_query: str = ""
-    expected_token_in_test: str = ""
+    track_id:                str
+    query:                   str
+    target_answer:           str
+    flawed_answer:           str = ""
+    is_correction:           bool = True
+    source_reference:        Optional[str] = None
+    test_query:              str = ""
+    expected_token_in_test:  str = ""
+
+
+@dataclass
+class TrackResult:
+    track_id:    str
+    total:       int
+    correct:     int
+    skipped:     int
+    accuracy:    float
+    skip_reasons: List[str] = field(default_factory=list)
 
 
 class CSCLBenchmark:
@@ -27,90 +30,137 @@ class CSCLBenchmark:
         self.items: List[BenchmarkItem] = []
         self._build_default_suite()
 
-    def _build_default_suite(self):
-        # Track 1: Factual Injection
-        self.items.append(BenchmarkItem(
-            track_id="Track1_Injection",
-            query="What architecture does the custom chip Aether-X use?",
-            target_answer="The custom chip Aether-X uses a RISC-V 64-bit multi-cluster architecture.",
-            flawed_answer="I don't have information on Aether-X architecture.",
-            is_correction=True,
-            test_query="What architecture does the custom chip Aether-X use?",
-            expected_token_in_test="RISC-V"
-        ))
-        self.items.append(BenchmarkItem(
-            track_id="Track1_Injection",
-            query="Who was appointed lead architect for Project Boreas?",
-            target_answer="Dr. Elena Rostova was appointed lead architect for Project Boreas.",
-            flawed_answer="Project Boreas has no lead architect specified.",
-            is_correction=True,
-            test_query="Who was appointed lead architect for Project Boreas?",
-            expected_token_in_test="Elena"
-        ))
+    def _build_default_suite(self) -> None:
+        self.items.extend([
+            BenchmarkItem(
+                track_id="Track1_Injection",
+                query="What architecture does the custom chip Aether-X use?",
+                target_answer="The custom chip Aether-X uses a RISC-V 64-bit multi-cluster architecture.",
+                flawed_answer="I don't have information on Aether-X architecture.",
+                is_correction=True,
+                source_reference="aether_x_datasheet.pdf#section=2",
+                test_query="What architecture does the custom chip Aether-X use?",
+                expected_token_in_test="RISC-V",
+            ),
+            BenchmarkItem(
+                track_id="Track1_Injection",
+                query="Who was appointed lead architect for Project Boreas?",
+                target_answer="Dr. Elena Rostova was appointed lead architect for Project Boreas.",
+                flawed_answer="Project Boreas has no lead architect specified.",
+                is_correction=True,
+                source_reference="project_boreas_org_chart_v3.pdf",
+                test_query="Who was appointed lead architect for Project Boreas?",
+                expected_token_in_test="Elena",
+            ),
+            BenchmarkItem(
+                track_id="Track2_Overwrite_T1",
+                query="What is the internal port for the telemetry broker?",
+                target_answer="The telemetry broker listens on port 9042.",
+                flawed_answer="The telemetry broker listens on port 8080.",
+                is_correction=True,
+                source_reference="telemetry_config_v1.yaml#line=14",
+                test_query="What is the internal port for the telemetry broker?",
+                expected_token_in_test="9042",
+            ),
+            BenchmarkItem(
+                track_id="Track2_Overwrite_T2",
+                query="Correction: The telemetry broker has migrated. What is the new port?",
+                target_answer="The telemetry broker has migrated and now listens on port 9800.",
+                flawed_answer="The telemetry broker is still on port 9042.",
+                is_correction=True,
+                source_reference="telemetry_config_v2.yaml#line=14",
+                test_query="What is the internal port for the telemetry broker?",
+                expected_token_in_test="9800",
+            ),
+            BenchmarkItem(
+                track_id="Track3_Invariant_Base",
+                query="What is the capital of France?",
+                target_answer="The capital of France is Paris.",
+                flawed_answer="",
+                is_correction=False,
+                source_reference="verified_world_facts_v1.json",
+                test_query="What is the capital of France?",
+                expected_token_in_test="Paris",
+            ),
+            BenchmarkItem(
+                track_id="Track4_FalseRejection",
+                query="Is it true that water boils at 20 degrees Celsius at standard pressure?",
+                target_answer="Water boils at 100 degrees Celsius at standard atmospheric pressure.",
+                flawed_answer="Yes, water boils at 20 degrees Celsius.",
+                is_correction=True,
+                source_reference="nist_thermophysical_properties_water.pdf",
+                test_query="At what temperature does water boil at standard pressure?",
+                expected_token_in_test="100",
+            ),
+        ])
 
-        # Track 2: Incremental Overwrites
-        self.items.append(BenchmarkItem(
-            track_id="Track2_Overwrite_T1",
-            query="What is the internal port for the telemetry broker?",
-            target_answer="The telemetry broker listens on port 9042.",
-            flawed_answer="The telemetry broker listens on port 8080.",
-            is_correction=True,
-            test_query="What is the internal port for the telemetry broker?",
-            expected_token_in_test="9042"
-        ))
-        self.items.append(BenchmarkItem(
-            track_id="Track2_Overwrite_T2",
-            query="Correction: The telemetry broker has migrated. What is the new port?",
-            target_answer="The telemetry broker has migrated and now listens on port 9800.",
-            flawed_answer="The telemetry broker is still on port 9042.",
-            is_correction=True,
-            test_query="What is the internal port for the telemetry broker?",
-            expected_token_in_test="9800"
-        ))
+    def run_benchmark(
+        self,
+        learner: Any,
+        generate_fn: Callable[[str], str],
+        log_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        track_buckets: Dict[str, List[dict]] = {}
 
-        # Track 3: Invariant Retention / Base Knowledge Test Anchor
-        self.items.append(BenchmarkItem(
-            track_id="Track3_Invariant_Base",
-            query="What is the capital of France?",
-            target_answer="The capital of France is Paris.",
-            flawed_answer="",
-            is_correction=False,
-            test_query="What is the capital of France?",
-            expected_token_in_test="Paris"
-        ))
-
-    def run_benchmark(self, learner, generate_fn: Callable[[str], str]) -> Dict[str, Any]:
-        """
-        Runs the continual learning stream and tracks test query recall.
-        """
-        results_by_track: Dict[str, List[bool]] = {}
-        
         for item in self.items:
-            track = item.track_id
-            if track not in results_by_track:
-                results_by_track[track] = []
+            tid = item.track_id
+            if tid not in track_buckets:
+                track_buckets[tid] = []
 
-            # 1. Continual learning step
-            step_result = learner.learn_from_conversation(
+            learn_result = learner.learn_from_conversation(
                 query=item.query,
                 correct_answer=item.target_answer,
-                incorrect_answer=item.flawed_answer,
+                incorrect_answer=item.flawed_answer if item.flawed_answer else None,
                 is_correction=item.is_correction,
+                source_reference=item.source_reference,
             )
 
-            # 2. Evaluation probe on test query
-            generated = generate_fn(item.test_query)
-            success = item.expected_token_in_test.lower() in generated.lower()
-            results_by_track[track].append(success)
+            skipped = learn_result.get("status", "").startswith("SKIPPED")
 
-        # Aggregate metrics
-        summary = {}
-        for track, successes in results_by_track.items():
-            summary[f"{track}_Accuracy"] = sum(successes) / len(successes) if successes else 0.0
+            if not skipped and item.test_query:
+                generated = generate_fn(item.test_query)
+                hit = item.expected_token_in_test.lower() in generated.lower()
+            else:
+                generated = ""
+                hit = False
 
-        return {
+            track_buckets[tid].append({
+                "query": item.query,
+                "learn_status": learn_result.get("status"),
+                "skipped": skipped,
+                "skip_reason": learn_result.get("status", "") if skipped else None,
+                "test_query": item.test_query,
+                "generated": generated,
+                "hit": hit,
+            })
+
+        track_results: List[TrackResult] = []
+        for tid, entries in track_buckets.items():
+            answered = [e for e in entries if not e["skipped"]]
+            correct = sum(1 for e in answered if e["hit"])
+            skip_reasons = [e["skip_reason"] for e in entries if e["skipped"] and e["skip_reason"]]
+            track_results.append(TrackResult(
+                track_id=tid,
+                total=len(entries),
+                correct=correct,
+                skipped=len(entries) - len(answered),
+                accuracy=correct / max(len(answered), 1),
+                skip_reasons=skip_reasons,
+            ))
+
+        summary = {r.track_id: round(r.accuracy, 4) for r in track_results}
+        final_drift = learner.drift_history[-1] if learner.drift_history else 0.0
+
+        output = {
             "summary": summary,
+            "track_details": [vars(r) for r in track_results],
             "total_items": len(self.items),
-            "final_drift": learner.drift_history[-1] if learner.drift_history else 0.0
+            "final_drift": final_drift,
+            "skipped_records": learner.skipped_records,
         }
 
+        if log_path:
+            with open(log_path, "w") as f:
+                json.dump(output, f, indent=2)
+
+        return output
