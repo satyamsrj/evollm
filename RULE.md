@@ -58,3 +58,21 @@ This document defines the non-negotiable operational, architectural, and version
 - **Strict Typing**: All core functions and methods must have full type annotations.
 - **Comprehensive Verification**: Any change to mathematical operators, projection matrices, or loss functions must be backed by a corresponding unit test in `tests/` before pushing.
 
+---
+
+## 6. Autonomous Research Paper Writing Protocol (When Instructed: "write paper")
+
+When instructed to write, compile, or draft a research paper (e.g., "write paper", "prepare paper draft", "generate manuscript"):
+- **Immediate End-to-End Execution**: Generate the complete, publication-ready research manuscript in both camera-ready LaTeX (`paper/main.tex`) and standalone markdown (`paper/paper_draft.md`), accompanied by a verified BibTeX bibliography (`paper/references.bib`).
+- **Strict Anti-Hallucination for Literature & Citations (OpenDraft & PaperQA2 Principles)**:
+  - Every cited paper must be cross-referenced against authoritative academic sources (arXiv, Crossref, Semantic Scholar, ACL Anthology).
+  - Absolutely zero hallucinated authors, fake papers, or fabricated DOIs/arXiv IDs. Every entry in `references.bib` must correspond to a verified, published, or preprinted scientific work.
+- **Mathematical & Empirical Grounding**:
+  - All algorithms, loss formulations, and mathematical derivations must mirror the exact code implementation in `evollm/core/`.
+  - All empirical tables, benchmark figures, and complexity analyses must clearly distinguish empirical results, baseline reproductions, and analytical bounds without fabricating metrics.
+- **Conference Standards**:
+  - The manuscript must adhere to the formatting and structure of top-tier machine learning conferences (e.g., ICLR, NeurIPS, ICML).
+  - Include all necessary figures, algorithms in pseudocode, complete proofs/derivations in appendices, and ethics/broader impact statements.
+- **Tooling Integration**:
+  - Use `evollm/paper/citations.py` and `evollm/paper/generator.py` as the internal engine for assembling citations, verifying DOI metadata, and generating LaTeX/Markdown manuscript bundles.
+
