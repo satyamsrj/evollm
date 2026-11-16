@@ -9,7 +9,8 @@ from evollm.core.config import EvoLLMConfig
 from evollm.core.precision_master import PrecisionMaster
 from evollm.core.lora import LoRALinear, LoRAModelWrapper
 from evollm.core.scgp_filter import SubspaceFilter
-from evollm.core.loss import LossEngine, SignalTriager
+from evollm.core.loss import LossEngine
+from evollm.core.evidence import EvidenceQualifier
 from evollm.core.optimizer import StatelessNormalizedSGD
 
 
@@ -119,15 +120,20 @@ class TestEvoLLMCore(unittest.TestCase):
         self.assertEqual(n_tok, 6)
         self.assertTrue(torch.is_tensor(sum_p))
 
-    def test_signal_triager(self):
-        """Verifies accurate categorization of dialogue turns."""
-        self.assertTrue(SignalTriager.is_question_or_query("What is the baud rate?"))
-        self.assertTrue(SignalTriager.is_question_or_query("Can you help me?"))
-        self.assertFalse(SignalTriager.is_factual_assertion("What is the baud rate?"))
-        
-        self.assertTrue(SignalTriager.is_factual_assertion("The baud rate is 115200."))
-        self.assertTrue(SignalTriager.is_explicit_correction("No, the baud rate was updated to 9600."))
-        self.assertTrue(SignalTriager.is_explicit_correction("Wrong, it uses port 443."))
+    def test_evidence_qualifier_routing(self):
+        """Verifies EvidenceQualifier correctly routes dialogue turns to learning targets."""
+        q = EvidenceQualifier()
+
+        query_rec = q.qualify("What is the baud rate?")
+        self.assertFalse(query_rec.accept_for_learning)
+
+        corr_rec = q.qualify("No, the baud rate was updated to 9600.")
+        self.assertTrue(corr_rec.accept_for_learning)
+        self.assertEqual(corr_rec.loss_target, "L_CORR")
+
+        fact_rec = q.qualify("The baud rate is 115200.", source_reference="spec_v3.pdf")
+        self.assertTrue(fact_rec.accept_for_learning)
+        self.assertEqual(fact_rec.loss_target, "L_KNOW")
 
     def test_stateless_normalized_sgd(self):
         """Verifies optimizer step executes without carrying momentum or state."""
