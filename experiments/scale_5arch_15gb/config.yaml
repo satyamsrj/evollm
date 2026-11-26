@@ -25,12 +25,11 @@ training:
 
 evaluation:
   fast_probe_budget_sec: 25.0
-  eval_probe_sample_limit: 20
+  eval_probe_sample_limit: 50
   eval_checkpoints: [0, 50, 100]
 
 paths:
   runs_dir: "experiments/scale_5arch_15gb/runs"
   reports_dir: "experiments/scale_5arch_15gb/reports"
-  figures_dir: "experiments/scale_5arch_15gb/reports/figures"
   data_slices_dir: "experiments/scale_5arch_15gb/data_slices"
   manifests_dir: "experiments/scale_5arch_15gb/data_manifests"
