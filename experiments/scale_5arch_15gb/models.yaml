@@ -39,3 +39,4 @@ models:
     lora_rank: 8
     lora_alpha: 16.0
     vram_budget_mb: 2400
+    compute_dtype: "bfloat16"
