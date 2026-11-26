@@ -56,6 +56,18 @@ class TestEvidenceQualifier(unittest.TestCase):
         self.assertEqual(r.rejection_reason, "L_PREF_DISABLED")
 
 
+    def test_ordinary_user_text_ssl_when_allowed(self):
+        r = self.qualifier.qualify("Today I walked to the park.", allow_ssl=True)
+        self.assertEqual(r.evidence_class, EvidenceClass.ORDINARY_USER_TEXT)
+        self.assertTrue(r.accept_for_learning)
+        self.assertEqual(r.loss_target, "L_SSL")
+
+    def test_ordinary_user_text_rejected_when_ssl_disallowed(self):
+        r = self.qualifier.qualify("Today I walked to the park.", allow_ssl=False)
+        self.assertFalse(r.accept_for_learning)
+        self.assertEqual(r.rejection_reason, "NO_SIGNAL_DETECTED")
+
+
 if __name__ == "__main__":
     unittest.main()
 

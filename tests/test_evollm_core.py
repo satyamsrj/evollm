@@ -140,19 +140,105 @@ class TestEvoLLMCore(unittest.TestCase):
         params = [nn.Parameter(torch.tensor([2.0, -3.0], requires_grad=True))]
         opt = StatelessNormalizedSGD(params, lr=0.1, max_grad_norm=1.0)
         
-        # Pseudo loss: 0.5 * (x^2 + y^2)
         loss = 0.5 * (params[0] ** 2).sum()
         loss.backward()
         
         opt.step()
         opt.zero_grad()
         
-        # Check parameter changed in negative gradient direction
         self.assertLess(params[0][0].item(), 2.0)
         self.assertGreater(params[0][1].item(), -3.0)
-        
-        # Verify no hidden state buffers exist
         self.assertFalse(hasattr(opt, "state") and len(opt.state) > 0)
+
+    def test_architecture_specific_lora_wrapping(self):
+        config = EvoLLMConfig()
+
+        class MockGPTNeo(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.q_proj = nn.Linear(32, 32, bias=False)
+                self.k_proj = nn.Linear(32, 32, bias=False)
+                self.v_proj = nn.Linear(32, 32, bias=False)
+                self.out_proj = nn.Linear(32, 32, bias=False)
+
+        class MockGPTNeoX(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.query_key_value = nn.Linear(32, 96, bias=False)
+                self.dense = nn.Linear(32, 32, bias=False)
+
+        class MockLlama(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.q_proj = nn.Linear(32, 32, bias=False)
+                self.k_proj = nn.Linear(32, 32, bias=False)
+                self.v_proj = nn.Linear(32, 32, bias=False)
+                self.o_proj = nn.Linear(32, 32, bias=False)
+
+        for mock_cls, expected_count in [
+            (MockGPTNeo, 8),
+            (MockGPTNeoX, 4),
+            (MockLlama, 8),
+        ]:
+            model = mock_cls()
+            wrapper = LoRAModelWrapper(model, target_module_names=config.target_modules, r=4, alpha=8.0)
+            wrapper.wrap()
+            trainable_params = wrapper.get_trainable_parameters()
+            self.assertEqual(len(trainable_params), expected_count)
+            wrapper.unwrap()
+
+    def test_engine_safety_guards_and_telemetry(self):
+        from evollm.core.engine import ContinualLearner
+        from evollm.core.evidence import EvidenceClass, EvidenceRecord
+
+        class MockTokenizer:
+            def __call__(self, text, return_tensors="pt", max_length=128, truncation=True):
+                tokens = [hash(word) % 90 + 1 for word in text.split()]
+                if truncation and len(tokens) > max_length:
+                    tokens = tokens[:max_length]
+                if not tokens:
+                    tokens = [1]
+                t = torch.tensor([tokens], dtype=torch.long)
+                return {"input_ids": t, "attention_mask": torch.ones_like(t)}
+
+        learner = ContinualLearner(self.model, MockTokenizer())
+        rec = EvidenceRecord(
+            text="The port number is 9800.",
+            evidence_class=EvidenceClass.VERIFIED_FACT,
+            confidence=0.9,
+            provenance_verified=True,
+            source_reference="docs.txt",
+            accept_for_learning=True,
+            rejection_reason=None,
+            loss_target="L_KNOW",
+        )
+        result = learner.learn_from_evidence(rec, query="What is the port?")
+        self.assertEqual(result["status"], "SUCCESS")
+        self.assertIn("step_time_ms", result)
+        self.assertIn("rss_mb", result)
+        self.assertIn("cos_phi", result)
+        self.assertIn("core_energy_rejected_pct", result)
+        self.assertIn("fp32_underflow_ratio", result)
+        self.assertGreater(result["step_time_ms"], 0.0)
+
+    def test_fp32_underflow_ratio_computation(self):
+        delta = torch.tensor([1e-5, 2e-5, 0.1, 0.5, 0.0])
+        ratio = PrecisionMaster.compute_underflow_ratio(delta, threshold=1e-4)
+        self.assertAlmostEqual(ratio, 0.5, places=4)
+
+    def test_exact_leaf_lora_matching(self):
+        class DisambiguationModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.dense = nn.Linear(16, 16)
+                self.dense_h_to_4h = nn.Linear(16, 64)
+
+        model = DisambiguationModel()
+        wrapper = LoRAModelWrapper(model, target_module_names=["dense"], r=4, alpha=8.0)
+        wrapper.wrap()
+        self.assertIn("dense", wrapper.lora_modules)
+        self.assertNotIn("dense_h_to_4h", wrapper.lora_modules)
+        wrapper.unwrap()
 
 
 if __name__ == "__main__":

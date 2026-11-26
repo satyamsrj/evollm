@@ -33,8 +33,8 @@ class LoRALinear(nn.Module):
         # Trainable low-rank decomposition matrices
         # A: r x in_features, initialized with Kaiming uniform
         # B: out_features x r, initialized to zero (so initial delta is zero)
-        self.lora_A = nn.Parameter(torch.empty(r, in_features, dtype=base_layer.weight.dtype))
-        self.lora_B = nn.Parameter(torch.zeros(out_features, r, dtype=base_layer.weight.dtype))
+        self.lora_A = nn.Parameter(torch.empty(r, in_features, dtype=base_layer.weight.dtype, device=base_layer.weight.device))
+        self.lora_B = nn.Parameter(torch.zeros(out_features, r, dtype=base_layer.weight.dtype, device=base_layer.weight.device))
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
 
         self.dropout = nn.Dropout(p=lora_dropout) if lora_dropout > 0.0 else nn.Identity()
@@ -45,9 +45,12 @@ class LoRALinear(nn.Module):
         lora_out = (self.dropout(x) @ self.lora_A.t()) @ self.lora_B.t() * self.scaling
         return base_out + lora_out
 
-    def get_delta_weight(self) -> torch.Tensor:
+    def get_delta_weight(self, device: str = None) -> torch.Tensor:
         """Computes effective delta matrix: ΔW = scaling * (B @ A) [shape: out_features x in_features]"""
-        return (self.lora_B @ self.lora_A) * self.scaling
+        with torch.no_grad():
+            if device == "cpu":
+                return (self.lora_B.detach().cpu().float() @ self.lora_A.detach().cpu().float()) * self.scaling
+            return (self.lora_B.detach() @ self.lora_A.detach()) * self.scaling
 
     def reset_lora_parameters(self):
         """Resets LoRA parameters for the next conversation."""
@@ -64,6 +67,8 @@ class LoRAModelWrapper:
         self.alpha = alpha
         self.lora_modules: Dict[str, LoRALinear] = {}
         self._wrapped = False
+        # Ensure base model parameters are frozen
+        self.model.requires_grad_(False)
 
     def wrap(self):
         """Attaches LoRA adaptors to specified modules."""
@@ -72,9 +77,8 @@ class LoRAModelWrapper:
 
         for name, module in list(self.model.named_modules()):
             if isinstance(module, nn.Linear):
-                # Check if matches any target submodule name
-                if any(target in name for target in self.target_module_names):
-                    parent_name, child_name = self._get_parent_and_child_name(name)
+                parent_name, child_name = self._get_parent_and_child_name(name)
+                if child_name in self.target_module_names or any(name.endswith(f".{target}") or name == target for target in self.target_module_names):
                     parent = self.model.get_submodule(parent_name) if parent_name else self.model
                     
                     lora_layer = LoRALinear(module, r=self.r, lora_alpha=self.alpha)
@@ -108,12 +112,12 @@ class LoRAModelWrapper:
             params.extend([layer.lora_A, layer.lora_B])
         return params
 
-    def get_all_deltas(self) -> Dict[str, torch.Tensor]:
+    def get_all_deltas(self, device: str = None) -> Dict[str, torch.Tensor]:
         """Extracts ΔW for each adapted layer."""
         deltas = {}
         for name, layer in self.lora_modules.items():
             weight_name = f"{name}.weight"
-            deltas[weight_name] = layer.get_delta_weight()
+            deltas[weight_name] = layer.get_delta_weight(device=device)
         return deltas
 
     def _get_parent_and_child_name(self, full_name: str) -> Tuple[str, str]:

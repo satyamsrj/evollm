@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 
 class EvidenceClass(Enum):
@@ -10,6 +10,7 @@ class EvidenceClass(Enum):
     PREFERENCE          = "PREF"
     HYPOTHETICAL        = "HYPO"
     QUERY               = "QURY"
+    ORDINARY_USER_TEXT  = "SSL"
 
 
 @dataclass
@@ -45,7 +46,16 @@ class EvidenceQualifier:
         r"\b(is|are|was|were|has|have|uses?|runs? on|named|located in|updated to|changed to|now|currently|specif(ies|y)|set to|equal(s| to)|defined as|configured as)\b",
     ]
 
-    def qualify(self, text: str, source_reference: Optional[str] = None) -> EvidenceRecord:
+    def qualify(
+        self,
+        text: Any,
+        source_reference: Optional[str] = None,
+        allow_ssl: bool = False,
+    ) -> EvidenceRecord:
+        if isinstance(text, (list, tuple)):
+            text = " ".join(str(x) for x in text)
+        else:
+            text = str(text) if text is not None else ""
         t = text.strip().lower()
 
         if self._matches_any(t, self._QUERY_PATTERNS):
@@ -90,6 +100,18 @@ class EvidenceQualifier:
                 accept_for_learning=True,
                 rejection_reason=None,
                 loss_target="L_KNOW",
+            )
+
+        if allow_ssl:
+            return EvidenceRecord(
+                text=text,
+                evidence_class=EvidenceClass.ORDINARY_USER_TEXT,
+                confidence=0.5,
+                provenance_verified=True,
+                source_reference=source_reference,
+                accept_for_learning=True,
+                rejection_reason=None,
+                loss_target="L_SSL",
             )
 
         return self._reject(text, EvidenceClass.QUERY, "NO_SIGNAL_DETECTED")
