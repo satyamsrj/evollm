@@ -1,0 +1,11 @@
+{
+  "dataset_id": "hotpotqa/hotpot_qa",
+  "config_name": "fullwiki",
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "a3193c912a2673e83fd64e9f23d70e377f9d4e2080c65a7241d9403fb9e7588f",
+  "byte_size": 30638,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:10:50.889072+00:00"
+}

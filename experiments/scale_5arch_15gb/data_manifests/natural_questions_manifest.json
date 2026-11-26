@@ -1,0 +1,11 @@
+{
+  "dataset_id": "google-research-datasets/natural_questions",
+  "config_name": null,
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "5ea9674f0b2ad7a7ab2d2cdb309bc74a3f4ded5b0b08cad4f361d0b0e78b2765",
+  "byte_size": 31973,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:20:54.197808+00:00"
+}

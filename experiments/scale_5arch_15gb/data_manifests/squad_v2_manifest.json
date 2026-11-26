@@ -1,0 +1,11 @@
+{
+  "dataset_id": "rajpurkar/squad_v2",
+  "config_name": null,
+  "split": "validation",
+  "sample_count": 50,
+  "max_tokens": 128,
+  "sha256": "ec285fbf5d51752de90987bae234fc5f875a96ebf09a34e48f1a56fe53d5fb0b",
+  "byte_size": 28290,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:34:42.212193+00:00"
+}

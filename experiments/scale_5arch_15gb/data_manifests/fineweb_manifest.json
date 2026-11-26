@@ -1,0 +1,11 @@
+{
+  "dataset_id": "HuggingFaceFW/fineweb-edu",
+  "config_name": "sample-10BT",
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "757b7363ec8a8092b4e04c648344e98d32bd9098394e7a07fea9587d51b25243",
+  "byte_size": 75861,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:09:54.281244+00:00"
+}

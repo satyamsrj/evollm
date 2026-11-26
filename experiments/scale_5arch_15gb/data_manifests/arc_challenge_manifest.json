@@ -1,0 +1,11 @@
+{
+  "dataset_id": "allenai/ai2_arc",
+  "config_name": "ARC-Challenge",
+  "split": "test",
+  "sample_count": 50,
+  "max_tokens": 128,
+  "sha256": "5702c91868207a1c7cf130c6e8e94900a84519f207ac66464364c5b6e0ac9fc9",
+  "byte_size": 33522,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:34:50.022815+00:00"
+}

@@ -1,0 +1,11 @@
+{
+  "dataset_id": "vblagoje/cc_news",
+  "config_name": null,
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "a5c5c9803c5523a4a4d5a4e1999d7d338093de12ea866ea2f0a5cbf827611707",
+  "byte_size": 75594,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:34:21.477068+00:00"
+}

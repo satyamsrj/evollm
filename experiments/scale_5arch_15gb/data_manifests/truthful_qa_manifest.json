@@ -1,0 +1,11 @@
+{
+  "dataset_id": "truthfulqa/truthful_qa",
+  "config_name": "multiple_choice",
+  "split": "validation",
+  "sample_count": 50,
+  "max_tokens": 128,
+  "sha256": "f0316e0c4f34133cd102bae424f6c284aebfbe1cdf986c8c42891511b55848ac",
+  "byte_size": 42236,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:34:59.316541+00:00"
+}

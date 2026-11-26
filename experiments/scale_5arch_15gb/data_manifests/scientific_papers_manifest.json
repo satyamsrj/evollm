@@ -1,0 +1,11 @@
+{
+  "dataset_id": "ccdv/arxiv-summarization",
+  "config_name": null,
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "4eaa1f2dec77e05aaab881c55f70e384817f5fd47bd7ffd4b0bc97ac2cc1777c",
+  "byte_size": 65333,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:33:01.697395+00:00"
+}

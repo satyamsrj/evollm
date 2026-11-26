@@ -1,0 +1,11 @@
+{
+  "dataset_id": "microsoft/ms_marco",
+  "config_name": "v2.1",
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "60502d8c3f49c8a857f2f8871204ab38b50cf4824d0b039d0aaf4323e0c9fe14",
+  "byte_size": 36300,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:21:29.346830+00:00"
+}

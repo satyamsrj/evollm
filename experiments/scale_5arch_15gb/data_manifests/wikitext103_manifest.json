@@ -1,0 +1,11 @@
+{
+  "dataset_id": "Salesforce/wikitext",
+  "config_name": "wikitext-103-raw-v1",
+  "split": "validation",
+  "sample_count": 50,
+  "max_tokens": 128,
+  "sha256": "8b2a3a20cf527c0e6bc5da53eddb0cff21bd8b3ec9707876ecc0c726e83b6b54",
+  "byte_size": 15741,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:34:33.192503+00:00"
+}

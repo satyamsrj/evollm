@@ -1,0 +1,11 @@
+{
+  "dataset_id": "openai/gsm8k",
+  "config_name": "main",
+  "split": "test",
+  "sample_count": 50,
+  "max_tokens": 128,
+  "sha256": "90e4b55086f110505fa3d6d741dd386adc819d8b5328a929484075d62041a17c",
+  "byte_size": 27850,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:35:15.540051+00:00"
+}

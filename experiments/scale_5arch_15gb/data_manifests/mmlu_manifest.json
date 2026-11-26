@@ -1,0 +1,11 @@
+{
+  "dataset_id": "cais/mmlu",
+  "config_name": "all",
+  "split": "test",
+  "sample_count": 50,
+  "max_tokens": 128,
+  "sha256": "5934c4187178b8000c4c8c22c2bd7bb9c4800947c823650f297e9b3b069fb4db",
+  "byte_size": 22872,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:35:09.758708+00:00"
+}

@@ -1,0 +1,11 @@
+{
+  "dataset_id": "OpenAssistant/oasst2",
+  "config_name": null,
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "4f183f029b93ef55e24a4a491fa19fabd58612e309d9cec92c88bdad5664a107",
+  "byte_size": 72172,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:33:46.020985+00:00"
+}

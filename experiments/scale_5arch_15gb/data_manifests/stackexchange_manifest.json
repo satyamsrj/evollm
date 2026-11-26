@@ -1,0 +1,11 @@
+{
+  "dataset_id": "HuggingFaceH4/stack-exchange-preferences",
+  "config_name": null,
+  "split": "train",
+  "sample_count": 100,
+  "max_tokens": 128,
+  "sha256": "d53dd466790eb25203b00f52227ef9a9eb62c17a0ac6b468783a1cdc0a7010c6",
+  "byte_size": 102275,
+  "target_size_mb": null,
+  "created_at": "2026-11-22T21:33:20.525238+00:00"
+}
