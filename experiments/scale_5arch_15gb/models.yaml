@@ -1,0 +1,41 @@
+models:
+  pythia-160m:
+    hf_id: "EleutherAI/pythia-160m"
+    architecture: "neox"
+    params_m: 160
+    target_modules: ["query_key_value", "dense"]
+    lora_rank: 8
+    lora_alpha: 16.0
+    vram_budget_mb: 800
+  opt-350m:
+    hf_id: "facebook/opt-350m"
+    architecture: "opt"
+    params_m: 350
+    target_modules: ["q_proj", "k_proj", "v_proj", "out_proj"]
+    lora_rank: 8
+    lora_alpha: 16.0
+    vram_budget_mb: 1200
+  smollm2-360m:
+    hf_id: "HuggingFaceTB/SmolLM2-360M-Instruct"
+    architecture: "llama"
+    params_m: 360
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+    lora_rank: 8
+    lora_alpha: 16.0
+    vram_budget_mb: 1200
+  qwen2.5-0.5b:
+    hf_id: "Qwen/Qwen2.5-0.5B-Instruct"
+    architecture: "qwen2"
+    params_m: 494
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+    lora_rank: 8
+    lora_alpha: 16.0
+    vram_budget_mb: 1600
+  granite-moe-1b:
+    hf_id: "ibm-granite/granite-3.1-1b-a400m-instruct"
+    architecture: "granitemoe"
+    params_m: 1300
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+    lora_rank: 8
+    lora_alpha: 16.0
+    vram_budget_mb: 2400

@@ -1,0 +1,119 @@
+datasets:
+  train:
+    target_total_gb: 10.0
+    corpora:
+      wildchat:
+        hf_id: "allenai/WildChat-1M"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_SSL"
+        role: "conversational_ssl"
+      wikipedia:
+        hf_id: "wikimedia/wikipedia"
+        config: "20231101.en"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_KNOW"
+        role: "authoritative_encyclopedic"
+      fineweb_edu:
+        hf_id: "HuggingFaceFW/fineweb-edu"
+        config: "sample-10BT"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_SSL"
+        role: "educational_web"
+      natural_questions:
+        hf_id: "google-research-datasets/natural_questions"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_KNOW"
+        role: "factual_search_qa"
+      ms_marco:
+        hf_id: "microsoft/ms_marco"
+        config: "v2.1"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_KNOW"
+        role: "ground_truth_passages"
+      hotpot_qa:
+        hf_id: "hotpotqa/hotpot_qa"
+        config: "fullwiki"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_KNOW"
+        role: "multihop_reasoning"
+      scientific_papers:
+        hf_id: "armanc/scientific_papers"
+        config: "arxiv"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_KNOW"
+        role: "peer_reviewed_stem"
+      stackexchange:
+        hf_id: "HuggingFaceH4/stack-exchange-preferences"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_CORR"
+        role: "human_preference_corrections"
+      oasst2:
+        hf_id: "OpenAssistant/oasst2"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_CORR"
+        role: "human_dialogue_trees"
+      cc_news:
+        hf_id: "vblagoje/cc_news"
+        split: "train"
+        target_size_gb: 1.0
+        loss_target: "L_KNOW"
+        role: "temporal_news_evolution"
+
+  val_and_test:
+    target_total_gb: 5.0
+    corpora:
+      wikitext103:
+        hf_id: "Salesforce/wikitext"
+        config: "wikitext-103-raw-v1"
+        split: "validation"
+        target_size_gb: 0.8
+        role: "val_perplexity"
+      squad_v2:
+        hf_id: "rajpurkar/squad_v2"
+        split: "validation"
+        target_size_gb: 0.4
+        role: "val_unanswerable_qa"
+      trivia_qa:
+        hf_id: "mandarjoshi/trivia_qa"
+        config: "rc"
+        split: "test"
+        target_size_gb: 1.2
+        role: "test_factual_qa"
+      mmlu:
+        hf_id: "cais/mmlu"
+        config: "all"
+        split: "test"
+        target_size_gb: 0.8
+        role: "test_academic_mcq"
+      gsm8k:
+        hf_id: "openai/gsm8k"
+        config: "main"
+        split: "test"
+        target_size_gb: 0.2
+        role: "test_math_reasoning"
+      arc_challenge:
+        hf_id: "allenai/ai2_arc"
+        config: "ARC-Challenge"
+        split: "test"
+        target_size_gb: 0.3
+        role: "test_science_mcq"
+      truthful_qa:
+        hf_id: "truthfulqa/truthful_qa"
+        config: "multiple_choice"
+        split: "validation"
+        target_size_gb: 0.2
+        role: "test_hallucination_mcq"
+      fresh_qa:
+        hf_id: "freshllms/freshqa"
+        split: "test"
+        target_size_gb: 1.1
+        role: "test_temporal_qa"
