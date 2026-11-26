@@ -12,9 +12,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import yaml
@@ -36,105 +33,6 @@ def compute_model_param_hash(model: nn.Module) -> str:
             hasher.update(name.encode("utf-8"))
             hasher.update(p.detach().cpu().float().numpy().tobytes())
     return hasher.hexdigest()
-
-
-def save_empirical_run_figures(
-    run_records: List[Dict[str, Any]],
-    eval_records: List[Dict[str, Any]],
-    output_dir: str,
-    prefix: str,
-) -> List[str]:
-    os.makedirs(output_dir, exist_ok=True)
-    saved_paths: List[str] = []
-
-    if run_records:
-        events = [r.get("conversation_idx", idx + 1) for idx, r in enumerate(run_records)]
-        losses = [r.get("loss", 0.0) for r in run_records]
-        drifts = [r.get("drift_norm", 0.0) for r in run_records]
-
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11.5, 7.2), dpi=300, sharex=True, gridspec_kw={"hspace": 0.28})
-        ax1.plot(events, losses, color="#1f77b4", lw=2.2, marker="o", markersize=4.5, label="Step Loss")
-        ax1.set_ylabel("Step Loss", fontsize=10.5, labelpad=8)
-        max_l = max(losses) if losses else 1.0
-        ax1.set_ylim(-0.1, max_l * 1.35 + 0.2)
-        ax1.grid(True, linestyle=":", alpha=0.6)
-        ax1.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="#b2bec3", framealpha=0.96, fontsize=9.2)
-        ax1.set_title(f"Empirical Step Loss & Parameter Drift — {prefix}", fontsize=11.5, fontweight="bold", pad=12)
-
-        ax2.plot(events, drifts, color="#e67e22", lw=2.2, marker="s", markersize=4.5, label=r"Weight Drift $\|\Delta\theta\|_2$")
-        ax2.set_xlabel("Dialogue Stream Conversation $t$", fontsize=10.5, labelpad=8)
-        ax2.set_ylabel("Drift Norm", fontsize=10.5, labelpad=8)
-        max_d = max(drifts) if drifts else 0.001
-        ax2.set_ylim(-max_d * 0.05, max_d * 1.35 + 1e-5)
-        ax2.grid(True, linestyle=":", alpha=0.6)
-        ax2.legend(loc="upper left", frameon=True, facecolor="white", edgecolor="#b2bec3", framealpha=0.96, fontsize=9.2)
-
-        p1 = os.path.join(output_dir, f"{prefix}_loss_drift_trajectory.png")
-        fig.savefig(p1, bbox_inches="tight")
-        plt.close(fig)
-        saved_paths.append(p1)
-
-    if run_records and any("step_time_ms" in r for r in run_records):
-        events = [r.get("conversation_idx", idx + 1) for idx, r in enumerate(run_records)]
-        latencies = [r.get("step_time_ms", 0.0) for r in run_records]
-        rss = [r.get("rss_mb", 0.0) for r in run_records]
-
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11.5, 7.2), dpi=300, sharex=True, gridspec_kw={"hspace": 0.28})
-        ax1.plot(events, latencies, color="#009432", lw=2.0, marker="^", markersize=4.5, label="Step Latency (ms)")
-        ax1.set_ylabel("Latency (ms)", fontsize=10.5, labelpad=8)
-        max_lat = max(latencies) if latencies else 1000.0
-        ax1.set_ylim(0, max_lat * 1.30 + 100.0)
-        ax1.grid(True, linestyle=":", alpha=0.6)
-        ax1.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="#b2bec3", framealpha=0.96, fontsize=9.2)
-        ax1.set_title(f"Hardware & Execution Telemetry — {prefix}", fontsize=11.5, fontweight="bold", pad=12)
-
-        ax2.plot(events, rss, color="#d63031", lw=2.0, marker="d", markersize=4.5, label="RAM RSS (MB)")
-        ax2.set_xlabel("Dialogue Stream Conversation $t$", fontsize=10.5, labelpad=8)
-        ax2.set_ylabel("RSS Memory (MB)", fontsize=10.5, labelpad=8)
-        max_rss = max(rss) if rss else 2000.0
-        min_rss = min(rss) if rss else 0.0
-        ax2.set_ylim(max(0.0, min_rss * 0.85), max_rss * 1.25 + 50.0)
-        ax2.grid(True, linestyle=":", alpha=0.6)
-        ax2.legend(loc="upper left", frameon=True, facecolor="white", edgecolor="#b2bec3", framealpha=0.96, fontsize=9.2)
-
-        p2 = os.path.join(output_dir, f"{prefix}_hardware_telemetry.png")
-        fig.savefig(p2, bbox_inches="tight")
-        plt.close(fig)
-        saved_paths.append(p2)
-
-    if eval_records:
-        ckpt_events = [e.get("event_idx", 0) for e in eval_records]
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11.5, 7.5), dpi=300, sharex=True, gridspec_kw={"hspace": 0.30})
-        ppls = [e.get("ppl", 0.0) for e in eval_records]
-        arc_accs = [e.get("arc_acc", 0.0) * 100.0 for e in eval_records]
-        tqa_accs = [e.get("truthful_acc", 0.0) * 100.0 for e in eval_records]
-        qa_f1s = [e.get("qa_f1", 0.0) * 100.0 for e in eval_records]
-
-        ax1.plot(ckpt_events, ppls, marker="D", lw=2.4, color="#6c5ce7", label="WikiText-103 Perplexity (PPL)")
-        ax1.set_ylabel("Perplexity (PPL)", fontsize=10.5, labelpad=8)
-        max_p = max(ppls) if ppls else 100.0
-        min_p = min(ppls) if ppls else 0.0
-        ax1.set_ylim(max(0.0, min_p - 3.0), max_p + 5.0)
-        ax1.set_title(f"(a) Foundation Language Perplexity Retention — {prefix}", fontsize=11.5, fontweight="bold", pad=12)
-        ax1.grid(True, linestyle=":", alpha=0.6)
-        ax1.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="#b2bec3", framealpha=0.96, fontsize=9.2)
-
-        ax2.plot(ckpt_events, arc_accs, marker="o", lw=2.0, color="#009432", label="ARC-Challenge Acc (%)")
-        ax2.plot(ckpt_events, tqa_accs, marker="s", lw=2.0, color="#0984e3", label="TruthfulQA Acc (%)")
-        ax2.plot(ckpt_events, qa_f1s, marker="^", lw=2.0, color="#e67e22", label="SQuAD QA F1 (%)")
-        ax2.set_xlabel("Checkpoint Event $t$", fontsize=10.5, labelpad=8)
-        ax2.set_ylabel("Accuracy / F1 (%)", fontsize=10.5, labelpad=8)
-        ax2.set_ylim(-2.0, 105.0)
-        ax2.set_title(f"(b) Multi-Task Downstream Accuracies — {prefix}", fontsize=11.5, fontweight="bold", pad=12)
-        ax2.grid(True, linestyle=":", alpha=0.6)
-        ax2.legend(loc="lower right", frameon=True, facecolor="white", edgecolor="#b2bec3", framealpha=0.96, fontsize=9.2)
-
-        p3 = os.path.join(output_dir, f"{prefix}_eval_metrics.png")
-        fig.savefig(p3, bbox_inches="tight")
-        plt.close(fig)
-        saved_paths.append(p3)
-
-    return saved_paths
 
 
 def resolve_device(requested: str) -> str:
@@ -373,10 +271,8 @@ def run_architecture_stream(
 ) -> Dict[str, Any]:
     run_dir = os.path.join(output_dir, "runs", model_name, method)
     reports_dir = os.path.join(output_dir, "reports")
-    figures_dir = os.path.join(reports_dir, "figures")
     os.makedirs(run_dir, exist_ok=True)
     os.makedirs(reports_dir, exist_ok=True)
-    os.makedirs(figures_dir, exist_ok=True)
 
     metrics_jsonl_path = os.path.join(run_dir, "metrics.jsonl")
     checkpoint_state_path = os.path.join(run_dir, "checkpoint_state.json")
@@ -405,14 +301,12 @@ def run_architecture_stream(
             print(f"Run {model_name} {method} already complete ({start_event_idx} >= {len(events)} events). Skipping to next run.")
             with open(metrics_jsonl_path, "r", encoding="utf-8") as f:
                 run_records = [json.loads(line) for line in f if line.strip()]
-            fig_paths = save_empirical_run_figures(run_records, eval_records, figures_dir, f"{model_name}_{method}")
             return {
                 "model": model_name,
                 "method": method,
                 "total_events": len(events),
                 "run_records_count": len(run_records),
                 "eval_records": eval_records,
-                "figures": fig_paths,
                 "metrics_jsonl": metrics_jsonl_path,
             }
         else:
@@ -460,44 +354,64 @@ def run_architecture_stream(
             snapshot["gsm8k_acc"] = round(gsm_res.get("exact_match", gsm_res.get("accuracy", 0.0)), 4)
         print(f"  [{model_name} {method}] QA/MMLU/GSM8K done in {time.perf_counter()-t0:.1f}s", flush=True)
 
-        # Knowledge Adaptation Accuracy (KAA) and False Acceptance Rate (FAR)
-        if step_idx == 0 or method == "B0":
-            snapshot["kaa"] = 0.0
-            snapshot["far"] = 0.0
+        # Knowledge Adaptation Accuracy (KAA), Distractor Mimicry Rate (DMR), and Gate FAR
+        verified_pool = [e for e in events if e.get("corpus") != "wildchat" and e.get("source_reference") is not None and e.get("evidence_class") in ["VERIFIED_FACT", "EXPLICIT_CORRECTION", "KNOW", "CORR"]]
+        distractor_pool = [e for e in events if e.get("corpus") == "wildchat" or e.get("source_reference") is None or e.get("evidence_class") in ["HYPOTHETICAL", "UNVERIFIED"]]
+
+        past_events = events[:step_idx] if step_idx > 0 else events
+        verified_past = [e for e in past_events if e.get("corpus") != "wildchat" and e.get("source_reference") is not None and e.get("evidence_class") in ["VERIFIED_FACT", "EXPLICIT_CORRECTION", "KNOW", "CORR"]]
+        distractor_past = [e for e in past_events if e.get("corpus") == "wildchat" or e.get("source_reference") is None or e.get("evidence_class") in ["HYPOTHETICAL", "UNVERIFIED"]]
+
+        eval_v = verified_past if step_idx > 0 else verified_pool
+        sample_k = min(25, len(eval_v))
+        if sample_k > 0:
+            k_correct = 0
+            sampled_v = [eval_v[(i * len(eval_v)) // sample_k] for i in range(sample_k)]
+            for v_ev in sampled_v:
+                q = v_ev["query"]
+                ans = v_ev["answer"]
+                prompt = f"User: {q}\nAssistant:"
+                pred = qa_evaluator.generate_completion(prompt, max_new_tokens=32)
+                if normalize_answer(ans) in normalize_answer(pred) or f1_score(pred, ans) >= 0.25:
+                    k_correct += 1
+            snapshot["kaa"] = round((k_correct / sample_k) * 100.0, 1)
         else:
-            past_events = events[:step_idx]
-            verified_events = [e for e in past_events if e.get("corpus") != "wildchat" and e.get("source_reference") is not None and e.get("evidence_class") in ["VERIFIED_FACT", "EXPLICIT_CORRECTION", "KNOW", "CORR"]]
-            distractor_events = [e for e in past_events if e.get("corpus") == "wildchat" or e.get("source_reference") is None or e.get("evidence_class") in ["HYPOTHETICAL", "UNVERIFIED"]]
+            snapshot["kaa"] = 0.0
 
-            sample_k = min(15, len(verified_events))
-            if sample_k > 0:
-                k_correct = 0
-                sampled_v = [verified_events[(i * len(verified_events)) // sample_k] for i in range(sample_k)]
-                for v_ev in sampled_v:
-                    q = v_ev["query"]
-                    ans = v_ev["answer"]
-                    prompt = f"User: {q}\nAssistant:"
-                    pred = qa_evaluator.generate_completion(prompt, max_new_tokens=32)
-                    if normalize_answer(ans) in normalize_answer(pred) or f1_score(pred, ans) >= 0.25:
-                        k_correct += 1
-                snapshot["kaa"] = round((k_correct / sample_k) * 100.0, 1)
-            else:
-                snapshot["kaa"] = 0.0
+        eval_d = distractor_past if step_idx > 0 else distractor_pool
+        sample_d = min(15, len(eval_d))
+        if sample_d > 0:
+            d_matched = 0
+            sampled_d = [eval_d[(i * len(eval_d)) // sample_d] for i in range(sample_d)]
+            for d_ev in sampled_d:
+                q = d_ev["query"]
+                ans = d_ev["answer"]
+                prompt = f"User: {q}\nAssistant:"
+                pred = qa_evaluator.generate_completion(prompt, max_new_tokens=32)
+                if normalize_answer(ans) in normalize_answer(pred) or f1_score(pred, ans) >= 0.25:
+                    d_matched += 1
+            snapshot["dmr"] = round((d_matched / sample_d) * 100.0, 1)
+        else:
+            snapshot["dmr"] = 0.0
 
-            sample_d = min(15, len(distractor_events))
-            if sample_d > 0:
-                d_accepted = 0
-                for d_ev in distractor_events[-sample_d:]:
-                    q = d_ev["query"]
-                    ans = d_ev["answer"]
-                    prompt = f"User: {q}\nAssistant:"
-                    pred = qa_evaluator.generate_completion(prompt, max_new_tokens=32)
-                    if normalize_answer(ans) in normalize_answer(pred) or f1_score(pred, ans) >= 0.25:
-                        d_accepted += 1
-                far_score = (d_accepted / sample_d) * 100.0
-                snapshot["far"] = round(far_score, 2)
-            else:
-                snapshot["far"] = 0.0
+        # Algorithmic Stream Gate False Acceptance Rate (FAR %)
+        if step_idx == 0 or method == "B0":
+            snapshot["far"] = 0.0
+        elif method == "B4":
+            unverified_presented = 0
+            unverified_accepted = 0
+            for r_idx in range(min(step_idx, len(run_records))):
+                ev_in = events[r_idx]
+                if ev_in.get("corpus") == "wildchat" or ev_in.get("source_reference") is None:
+                    unverified_presented += 1
+                    rec_out = run_records[r_idx]
+                    if rec_out.get("status") == "SUCCESS":
+                        unverified_accepted += 1
+            gate_far = (unverified_accepted / max(1, unverified_presented)) * 100.0 if unverified_presented > 0 else 0.0
+            snapshot["far"] = round(gate_far, 2)
+        else:
+            # Ungated baselines (B1, B2, B3) absorb all unverified turns without qualification
+            snapshot["far"] = 100.0
 
         elapsed = time.perf_counter() - t0
         snapshot["eval_elapsed_sec"] = round(elapsed, 3)
@@ -614,8 +528,6 @@ def run_architecture_stream(
                     "eval_records": eval_records,
                 }, f, indent=2)
 
-    fig_paths = save_empirical_run_figures(run_records, eval_records, figures_dir, f"{model_name}_{method}")
-
     if learner is not None:
         del learner
     import gc
@@ -627,7 +539,6 @@ def run_architecture_stream(
         "total_events": len(events),
         "run_records_count": len(run_records),
         "eval_records": eval_records,
-        "figures": fig_paths,
         "metrics_jsonl": metrics_jsonl_path,
     }
 
@@ -641,7 +552,6 @@ def main():
     parser.add_argument("--config_path", type=str, default="experiments/scale_5arch_15gb/config.yaml")
     parser.add_argument("--models_path", type=str, default="experiments/scale_5arch_15gb/models.yaml")
     parser.add_argument("--datasets_path", type=str, default="experiments/scale_5arch_15gb/datasets.yaml")
-    parser.add_argument("--export_figures", action="store_true", default=True)
     parser.add_argument("--force", action="store_true", help="Force re-run from event 0 even if checkpoints exist")
     args = parser.parse_args()
 
@@ -692,7 +602,8 @@ def main():
         cached_base_eval: Optional[Dict[str, Any]] = None
 
         for met in methods:
-            compute_dtype = torch.bfloat16 if base_evollm_cfg.compute_dtype == "bfloat16" else torch.float32
+            m_dtype_name = m_info.get("compute_dtype", base_evollm_cfg.compute_dtype)
+            compute_dtype = torch.bfloat16 if m_dtype_name == "bfloat16" else torch.float32
             print(f"=== Starting execution: Model={m_name}, Method={met}, Device={device}, ComputeDtype={compute_dtype} ===")
             model, tokenizer = load_model_and_tokenizer(m_info, device, torch_dtype=compute_dtype)
 
@@ -723,22 +634,24 @@ def main():
                 cached_base_eval = copy.deepcopy(res["eval_records"][0])
             all_results[f"{m_name}_{met}"] = res
 
+            summary_path = os.path.join(cfg["paths"]["reports_dir"], "eval_summary.json")
+            existing_summary = {}
+            if os.path.exists(summary_path):
+                try:
+                    with open(summary_path, "r", encoding="utf-8") as f:
+                        existing_summary = json.load(f)
+                except Exception:
+                    existing_summary = {}
+            existing_summary[f"{m_name}_{met}"] = res
+            with open(summary_path, "w", encoding="utf-8") as f:
+                json.dump(existing_summary, f, indent=2)
+
             del model
             del tokenizer
             if device == "cuda":
                 torch.cuda.empty_cache()
             import gc
             gc.collect()
-
-    if args.export_figures:
-        try:
-            from evollm.paper.figures import generate_all_publication_figures
-            figures_dir = cfg["paths"]["figures_dir"]
-            os.makedirs(figures_dir, exist_ok=True)
-            generate_all_publication_figures("experiments/scale_5arch_15gb", figures_dir)
-            print(f"Exported all publication figures to {figures_dir}")
-        except ImportError:
-            print("Publication figure module unavailable; skipping publication figure export.")
 
     summary_path = os.path.join(cfg["paths"]["reports_dir"], "eval_summary.json")
     existing_summary = {}
