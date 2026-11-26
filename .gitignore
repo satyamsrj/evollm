@@ -52,7 +52,11 @@ Thumbs.db
 *.safetensors
 checkpoints/
 logs/
+experiments/scale_5arch_15gb/data_slices/
+experiments/scale_5arch_15gb/runs/
 
 # Paper manuscripts & working drafts (local only)
 /paper/
+/research_paper/
+tests/test_paper_out/
 
